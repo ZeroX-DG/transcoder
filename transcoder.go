@@ -3,6 +3,7 @@ package transcoder
 import (
 	"context"
 	"io"
+	"os/exec"
 )
 
 // Transcoder ...
@@ -16,4 +17,5 @@ type Transcoder interface {
 	WithAdditionalOptions(opts Options) Transcoder
 	WithContext(ctx *context.Context) Transcoder
 	GetMetadata() (Metadata, error)
+	GetRunningCmdInstance() *exec.Cmd
 }

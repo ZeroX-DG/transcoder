@@ -29,6 +29,7 @@ type Transcoder struct {
 	outputPipeReader *io.ReadCloser
 	inputPipeWriter  *io.WriteCloser
 	outputPipeWriter *io.WriteCloser
+	cmd              *exec.Cmd
 	commandContext   *context.Context
 }
 
@@ -87,27 +88,26 @@ func (t *Transcoder) Start(opts transcoder.Options) (<-chan transcoder.Progress,
 	// If a context object was supplied to this Transcoder before
 	// starting, use this context when creating the command to allow
 	// the command to be killed when the context expires
-	var cmd *exec.Cmd
 	if t.commandContext == nil {
-		cmd = exec.Command(t.config.FfmpegBinPath, args...)
+		t.cmd = exec.Command(t.config.FfmpegBinPath, args...)
 	} else {
-		cmd = exec.CommandContext(*t.commandContext, t.config.FfmpegBinPath, args...)
+		t.cmd = exec.CommandContext(*t.commandContext, t.config.FfmpegBinPath, args...)
 	}
 
 	// If progresss enabled, get stderr pipe and start progress process
 	if t.config.ProgressEnabled && !t.config.Verbose {
-		stderrIn, err = cmd.StderrPipe()
+		stderrIn, err = t.cmd.StderrPipe()
 		if err != nil {
 			return nil, fmt.Errorf("Failed getting transcoding progress (%s) with args (%s) with error %s", t.config.FfmpegBinPath, args, err)
 		}
 	}
 
 	if t.config.Verbose {
-		cmd.Stderr = os.Stdout
+		t.cmd.Stderr = os.Stdout
 	}
 
 	// Start process
-	err = cmd.Start()
+	err = t.cmd.Start()
 	if err != nil {
 		return nil, fmt.Errorf("Failed starting transcoding (%s) with args (%s) with error %s", t.config.FfmpegBinPath, args, err)
 	}
@@ -119,10 +119,10 @@ func (t *Transcoder) Start(opts transcoder.Options) (<-chan transcoder.Progress,
 
 		go func() {
 			defer close(out)
-			err = cmd.Wait()
+			err = t.cmd.Wait()
 		}()
 	} else {
-		err = cmd.Wait()
+		err = t.cmd.Wait()
 	}
 
 	return out, nil
@@ -330,6 +330,13 @@ func (t *Transcoder) progress(stream io.ReadCloser, out chan transcoder.Progress
 			out <- *Progress
 		}
 	}
+}
+
+// GetRunningCmdInstance returns the exec.Cmd instance as a pointer. This field
+// is only set when the command is successfully started with Transcoder.Start and will
+// be 'nil' in all other cases.
+func (t *Transcoder) GetRunningCmdInstance() *exec.Cmd {
+	return t.cmd
 }
 
 // closePipes Closes pipes if opened

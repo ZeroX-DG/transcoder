@@ -59,7 +59,7 @@ func (t *Transcoder) Start(opts transcoder.Options) (<-chan transcoder.Progress,
 	}
 
 	// Append input file and standard options
-	args := append([]string{"-i", t.input}, opts.GetStrArguments()...)
+	args := append(append(opts.GetGlobalStrArguments(), []string{"-i", t.input}...), opts.GetStrArguments()...)
 	outputLength := len(t.output)
 	optionsLength := len(t.options)
 

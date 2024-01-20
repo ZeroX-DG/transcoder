@@ -66,6 +66,17 @@ type Options struct {
 	WhiteListProtocols    []string          `flag:"-protocol_whitelist"`
 	Overwrite             *bool             `flag:"-y"`
 	ExtraArgs             map[string]interface{}
+  GlobalArgs            map[string]interface{}
+}
+
+func (opts Options) GetGlobalStrArguments() []string {
+	values := []string{}
+  if opts.GlobalArgs != nil {
+    for k, v := range opts.GlobalArgs {
+      values = append(values, k, fmt.Sprintf("%v", v))
+    }
+  }
+  return values
 }
 
 // GetStrArguments ...
@@ -98,6 +109,9 @@ func (opts Options) GetStrArguments() []string {
 			}
 
 			if vm, ok := value.(map[string]interface{}); ok {
+        if f.Field(i).Name == "GlobalArgs" {
+          continue
+        }
 				for k, v := range vm {
 					values = append(values, k, fmt.Sprintf("%v", v))
 				}
